@@ -1,3 +1,11 @@
+# cloud.google.com/go v0.115.1
+## explicit; go 1.20
+cloud.google.com/go
+# cloud.google.com/go/ai v0.8.0
+## explicit; go 1.20
+cloud.google.com/go/ai/generativelanguage/apiv1beta
+cloud.google.com/go/ai/generativelanguage/apiv1beta/generativelanguagepb
+cloud.google.com/go/ai/internal
 # cloud.google.com/go/auth v0.12.0
 ## explicit; go 1.21
 cloud.google.com/go/auth
@@ -21,6 +29,11 @@ cloud.google.com/go/auth/oauth2adapt
 # cloud.google.com/go/compute/metadata v0.5.1
 ## explicit; go 1.21
 cloud.google.com/go/compute/metadata
+# cloud.google.com/go/longrunning v0.6.0
+## explicit; go 1.21
+cloud.google.com/go/longrunning
+cloud.google.com/go/longrunning/autogen
+cloud.google.com/go/longrunning/autogen/longrunningpb
 # cloud.google.com/go/monitoring v1.21.0
 ## explicit; go 1.21
 cloud.google.com/go/monitoring/apiv3/v2
@@ -205,6 +218,12 @@ github.com/google/addlicense
 # github.com/google/btree v1.1.2
 ## explicit; go 1.18
 github.com/google/btree
+# github.com/google/generative-ai-go v0.19.0
+## explicit; go 1.21
+github.com/google/generative-ai-go/genai
+github.com/google/generative-ai-go/genai/internal
+github.com/google/generative-ai-go/genai/internal/generativelanguage/v1beta
+github.com/google/generative-ai-go/genai/internal/gensupport
 # github.com/google/gnostic-models v0.6.8
 ## explicit; go 1.18
 github.com/google/gnostic-models/compiler
@@ -275,8 +294,6 @@ github.com/google/gofuzz/bytesource
 ## explicit; go 1.16
 github.com/google/licenseclassifier/v2
 github.com/google/licenseclassifier/v2/assets
-# github.com/google/martian/v3 v3.3.3
-## explicit; go 1.18
 # github.com/google/s2a-go v0.1.8
 ## explicit; go 1.20
 github.com/google/s2a-go

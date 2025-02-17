@@ -1,0 +1,27 @@
+
+*gke_mikebz-ex1_us-central1_hello-central
+  --------------------
+  ERROR   Root repo error: resourcegroups.kpt.dev "app1" not found in namespace "config-management-system"
+  --------------------
+  <root>:app1   git@gitlab.com:mikebz/config-sync-bp25-app.git/config@main   
+  ERROR                                                                      
+  TotalErrorCount: 1
+  Error:   KNV2004: error in the git-sync container: {"Msg":"error syncing repo, will retry","Err":"Run(git fetch git@gitlab.com:mikebz/config-sync-bp25-app.git main --verbose --no-progress --prune --no-auto-gc --depth 1): exit status 128: { stdout: \"\", stderr: \"Warning: Identity file /etc/git-secret/ssh not accessible: No such file or directory.\\ngit@gitlab.com: Permission denied (publickey).\\r\\nfatal: Could not read from remote repository.\\n\\nPlease make sure you have the correct access rights\\nand the repository exists.\" }","Args":{"failCount":11}}
+
+For more information, see https://g.co/cloud/acm-errors#knv2004   
+  --------------------
+  ghostly:ghost3                           https://github.com/mikebz/kpt-samples.git/ghost3@main   
+  SYNCED @ 2025-02-14 05:38:28 -0800 PST   9b0b2e6e094eb4af2a7ac0b50b07a24db183cbf1                
+  Managed resources:
+     NAMESPACE   NAME                                       STATUS    SOURCEHASH
+     ghostly     configmap/release-name-mysql               Current   9b0b2e6
+     ghostly     deployment.apps/release-name-ghost         Current   9b0b2e6
+     ghostly     persistentvolumeclaim/release-name-ghost   Current   9b0b2e6
+     ghostly     secret/release-name-ghost                  Current   9b0b2e6
+     ghostly     secret/release-name-mysql                  Current   9b0b2e6
+     ghostly     service/release-name-ghost                 Current   9b0b2e6
+     ghostly     service/release-name-mysql                 Current   9b0b2e6
+     ghostly     service/release-name-mysql-headless        Current   9b0b2e6
+     ghostly     serviceaccount/release-name-ghost          Current   9b0b2e6
+     ghostly     serviceaccount/release-name-mysql          Current   9b0b2e6
+     ghostly     statefulset.apps/release-name-mysql        Current   9b0b2e6

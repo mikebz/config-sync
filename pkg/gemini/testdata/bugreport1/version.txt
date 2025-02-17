@@ -1,0 +1,4 @@
+CURRENT   CLUSTER_CONTEXT_NAME                       COMPONENT           VERSION
+                                                     <nomos CLI>         v1.20.1-rc.1
+*         gke_mikebz-ex1_us-central1_hello-central   config-management   v1.19.2-rc.1
+          gke_mikebz-ex1_us-west1_hello-west         config-management   v1.19.2-rc.1
