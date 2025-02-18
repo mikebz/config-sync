@@ -16,12 +16,16 @@ package ask
 
 import (
 	"fmt"
+	"os"
+	"slices"
 
 	"github.com/spf13/cobra"
 	"k8s.io/client-go/kubernetes"
 	"kpt.dev/configsync/cmd/nomos/flags"
+	"kpt.dev/configsync/cmd/nomos/version"
 	"kpt.dev/configsync/pkg/bugreport"
 	"kpt.dev/configsync/pkg/client/restconfig"
+	"kpt.dev/configsync/pkg/gemini"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
@@ -34,9 +38,8 @@ func init() {
 		"The question about your Config Sync clusters")
 	Cmd.Flags().StringVar(&model, "model", "gemini-2.0-flash",
 		"Model to use in analysis")
-	Cmd.Flags().StringVar(&geminikey, "geminikey", "",
+	Cmd.Flags().StringVar(&geminikey, "geminikey", os.Getenv("GEMINI_API_KEY"),
 		"Gemini key to use, if not provided we will also look for GEMINI_API_KEY env var")
-
 }
 
 // Cmd retrieves readers for all relevant nomos container logs and cluster state commands and writes them to a zip file
@@ -45,6 +48,7 @@ var Cmd = &cobra.Command{
 	Short: "Ask gemini a question about your Config Sync clusters",
 	Long:  "This command takes all the information from the clusters and allows you to ask a question with context.",
 	RunE: func(cmd *cobra.Command, _ []string) error {
+		ctx := cmd.Context()
 
 		cfg, err := restconfig.NewRestConfig(flags.ClientTimeout)
 		if err != nil {
@@ -59,22 +63,43 @@ var Cmd = &cobra.Command{
 			return fmt.Errorf("failed to create kubernetes client: %w", err)
 		}
 
-		report, err := bugreport.New(cmd.Context(), c, cs)
+		report, err := bugreport.New(ctx, c, cs)
 		if err != nil {
 			return fmt.Errorf("failed to initialize bug reporter: %w", err)
 		}
 
-		if err = report.Open(); err != nil {
+		// NOTE: do not call bugreport.Open - it creates a zip file we don't
+		// need.
+
+		// get the version exactly how it is supplied in BugReport.
+		vrc, err := version.GetVersionReadCloser(ctx)
+		if err != nil {
+			return err
+		}
+		defer vrc.Close()
+		vreadable := bugreport.Readable{
+			Name:       "version.txt",
+			ReadCloser: vrc,
+		}
+		vslice := make([]bugreport.Readable, 1)
+		vslice[0] = vreadable
+
+		// get the rest of the logs
+		logs := report.FetchLogSources(ctx)
+		resources := report.FetchResources(ctx)
+		pods := report.FetchCMSystemPods(ctx)
+		allFiles := slices.Concat(logs, resources, pods, vslice)
+
+		client, err := gemini.NewClient(cmd.Context(), geminikey, model)
+		if err != nil {
 			return err
 		}
 
-		/*report.WriteRawInZip(report.FetchLogSources(cmd.Context()))
-		report.WriteRawInZip(report.FetchResources(cmd.Context()))
-		report.WriteRawInZip(report.FetchCMSystemPods(cmd.Context()))
-		report.AddNomosStatusToZip(cmd.Context())
-		report.AddNomosVersionToZip(cmd.Context())
-		*/
-		report.Close()
+		r, err := client.Ask(ctx, question, allFiles)
+		if err != nil {
+			return err
+		}
+		fmt.Println(r)
 		return nil
 	},
 }

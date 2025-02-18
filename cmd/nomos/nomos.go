@@ -21,6 +21,7 @@ import (
 
 	"github.com/spf13/cobra"
 	"k8s.io/klog/v2"
+	"kpt.dev/configsync/cmd/nomos/ask"
 	"kpt.dev/configsync/cmd/nomos/bugreport"
 	"kpt.dev/configsync/cmd/nomos/hydrate"
 	"kpt.dev/configsync/cmd/nomos/initialize"
@@ -60,6 +61,7 @@ func init() {
 	rootCmd.AddCommand(status.Cmd)
 	rootCmd.AddCommand(bugreport.Cmd)
 	rootCmd.AddCommand(migrate.Cmd)
+	rootCmd.AddCommand(ask.Cmd)
 }
 
 func main() {
