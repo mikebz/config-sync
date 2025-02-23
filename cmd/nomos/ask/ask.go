@@ -27,6 +27,8 @@ import (
 	"kpt.dev/configsync/pkg/client/restconfig"
 	"kpt.dev/configsync/pkg/gemini"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+
+	markdown "github.com/MichaelMure/go-term-markdown"
 )
 
 var question string
@@ -36,7 +38,7 @@ var geminikey string
 func init() {
 	Cmd.Flags().StringVar(&question, "q", "describe my clusters",
 		"The question about your Config Sync clusters")
-	Cmd.Flags().StringVar(&model, "model", "gemini-2.0-flash",
+	Cmd.Flags().StringVar(&model, "model", "gemini-1.5-pro",
 		"Model to use in analysis")
 	Cmd.Flags().StringVar(&geminikey, "geminikey", os.Getenv("GEMINI_API_KEY"),
 		"Gemini key to use, if not provided we will also look for GEMINI_API_KEY env var")
@@ -99,7 +101,9 @@ var Cmd = &cobra.Command{
 		if err != nil {
 			return err
 		}
-		fmt.Println(r)
+
+		formatted := markdown.Render(r, 120, 6)
+		fmt.Println(string(formatted))
 		return nil
 	},
 }
