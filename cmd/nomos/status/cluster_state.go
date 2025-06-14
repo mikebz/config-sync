@@ -47,7 +47,10 @@ type ClusterState struct {
 	isMulti *bool
 }
 
-func (c *ClusterState) printRows(writer io.Writer) {
+// printRows prints the status of the cluster, including its repositories.
+// nameFilter is used to filter which RepoState to print by syncName.
+// includeResourceDetail is passed down to RepoState.printRows.
+func (c *ClusterState) printRows(writer io.Writer, nameFilter string, includeResourceDetail bool) {
 	util.MustFprintf(writer, "\n")
 	util.MustFprintf(writer, "%s\n", c.Ref)
 	if c.status != "" || c.Error != "" {
@@ -55,9 +58,11 @@ func (c *ClusterState) printRows(writer io.Writer) {
 		util.MustFprintf(writer, "%s%s\t%s\n", util.Indent, c.status, c.Error)
 	}
 	for _, repo := range c.repos {
-		if name == "" || name == repo.syncName {
+		// Apply nameFilter here for individual repo state printing
+		if nameFilter == "" || nameFilter == repo.syncName {
 			util.MustFprintf(writer, "%s%s\n", util.Indent, util.Separator)
-			repo.printRows(writer)
+			// Pass includeResourceDetail to repo.printRows
+			repo.printRows(writer, includeResourceDetail)
 		}
 	}
 }
@@ -89,7 +94,9 @@ type RepoState struct {
 	resources    []resourceState
 }
 
-func (r *RepoState) printRows(writer io.Writer) {
+// printRows prints the status of a single repository.
+// includeResourceDetail determines if managed resource details are printed.
+func (r *RepoState) printRows(writer io.Writer, includeResourceDetail bool) {
 	util.MustFprintf(writer, "%s%s:%s\t%s\t\n", util.Indent, r.scope, r.syncName, sourceString(r.sourceType, r.git, r.oci, r.helm))
 	if r.status == syncedMsg {
 		util.MustFprintf(writer, "%s%s @ %v\t%s\t\n", util.Indent, r.status, r.lastSyncTimestamp, r.commit)
@@ -110,7 +117,8 @@ func (r *RepoState) printRows(writer io.Writer) {
 		util.MustFprintf(writer, "%sError:\t%s\t\n", util.Indent, err)
 	}
 
-	if resourceStatus && len(r.resources) > 0 {
+	// Use includeResourceDetail parameter instead of global resourceStatus
+	if includeResourceDetail && len(r.resources) > 0 {
 		sort.Sort(byNamespaceAndType(r.resources))
 		util.MustFprintf(writer, "%sManaged resources:\n", util.Indent)
 		hasSourceHash := r.resources[0].SourceHash != ""
@@ -119,14 +127,14 @@ func (r *RepoState) printRows(writer io.Writer) {
 		} else {
 			util.MustFprintf(writer, "%s\tNAMESPACE\tNAME\tSTATUS\tSOURCEHASH\n", util.Indent)
 		}
-		for _, r := range r.resources {
+		for _, res := range r.resources { // Renamed loop var to avoid conflict
 			if !hasSourceHash {
-				util.MustFprintf(writer, "%s\t%s\t%s\t%s\n", util.Indent, r.Namespace, r.String(), r.Status)
+				util.MustFprintf(writer, "%s\t%s\t%s\t%s\n", util.Indent, res.Namespace, res.String(), res.Status)
 			} else {
-				util.MustFprintf(writer, "%s\t%s\t%s\t%s\t%s\n", util.Indent, r.Namespace, r.String(), r.Status, r.SourceHash)
+				util.MustFprintf(writer, "%s\t%s\t%s\t%s\t%s\n", util.Indent, res.Namespace, res.String(), res.Status, res.SourceHash)
 			}
-			if len(r.Conditions) > 0 {
-				for _, condition := range r.Conditions {
+			if len(res.Conditions) > 0 {
+				for _, condition := range res.Conditions {
 					util.MustFprintf(writer, "%s%s%s%s%s\n", util.Indent, util.Indent, util.Indent, util.Indent, condition.Message)
 				}
 			}
@@ -304,7 +312,8 @@ func getResourceStatusErrors(resourceConditions []v1.ResourceCondition) []string
 }
 
 // namespaceRepoStatus converts the given RepoSync into a RepoState.
-func namespaceRepoStatus(rs *v1beta1.RepoSync, rg *unstructured.Unstructured, syncingConditionSupported bool) *RepoState {
+// includeResourceDetail determines if resource-level statuses are populated.
+func namespaceRepoStatus(rs *v1beta1.RepoSync, rg *unstructured.Unstructured, syncingConditionSupported bool, includeResourceDetail bool) *RepoState {
 	repostate := &RepoState{
 		scope:      rs.Namespace,
 		syncName:   rs.Name,
@@ -381,8 +390,10 @@ func namespaceRepoStatus(rs *v1beta1.RepoSync, rg *unstructured.Unstructured, sy
 			repostate.lastSyncTimestamp = rs.Status.Sync.LastUpdate
 		}
 		repostate.commit = syncingCondition.Commit
-		resources, _ := resourceLevelStatus(rg)
-		repostate.resources = resources
+		if includeResourceDetail {
+			resources, _ := resourceLevelStatus(rg) // Populated only if requested
+			repostate.resources = resources
+		}
 	default:
 		// The sync step finished with errors.
 		repostate.status = util.ErrorMsg
@@ -406,7 +417,8 @@ func namespaceRepoStatus(rs *v1beta1.RepoSync, rg *unstructured.Unstructured, sy
 }
 
 // RootRepoStatus converts the given RootSync into a RepoState.
-func RootRepoStatus(rs *v1beta1.RootSync, rg *unstructured.Unstructured, syncingConditionSupported bool) *RepoState {
+// includeResourceDetail determines if resource-level statuses are populated.
+func RootRepoStatus(rs *v1beta1.RootSync, rg *unstructured.Unstructured, syncingConditionSupported bool, includeResourceDetail bool) *RepoState {
 	repostate := &RepoState{
 		scope:      "<root>",
 		syncName:   rs.Name,
@@ -482,8 +494,10 @@ func RootRepoStatus(rs *v1beta1.RootSync, rg *unstructured.Unstructured, syncing
 			repostate.lastSyncTimestamp = rs.Status.Sync.LastUpdate
 		}
 		repostate.commit = syncingCondition.Commit
-		resources, _ := resourceLevelStatus(rg)
-		repostate.resources = resources
+		if includeResourceDetail {
+			resources, _ := resourceLevelStatus(rg) // Populated only if requested
+			repostate.resources = resources
+		}
 	default:
 		// The sync step finished with errors.
 		repostate.status = util.ErrorMsg

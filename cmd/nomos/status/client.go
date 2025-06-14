@@ -133,8 +133,15 @@ func (c *ClusterClient) resourceGroups(ctx context.Context, ns string, nsAndName
 }
 
 // clusterStatus returns the ClusterState for the cluster this client is connected to.
-func (c *ClusterClient) clusterStatus(ctx context.Context, cluster, namespace string) *ClusterState {
-	cs := &ClusterState{Ref: cluster}
+// namespaceFilter corresponds to the --namespace flag.
+// nameFilter corresponds to the --name flag.
+// includeResourceDetail corresponds to the --resources flag.
+func (c *ClusterClient) clusterStatus(ctx context.Context, clusterName, namespaceFilter, nameFilter string, includeResourceDetail bool) *ClusterState {
+	cs := &ClusterState{Ref: clusterName}
+	// includeResourceDetail is not directly used in this function for fetching,
+	// but it's passed down so RepoState can decide whether to populate/display resource details.
+	// nameFilter is used to filter which RootSync/RepoSync objects are processed.
+
 	isOss, err := util.IsOssInstallation(ctx, c.ConfigManagement, c.Client, c.K8sClient)
 	if err != nil {
 		cs.Error = err.Error()
@@ -158,14 +165,24 @@ func (c *ClusterClient) clusterStatus(ctx context.Context, cluster, namespace st
 		}
 	}
 
-	if namespace == configsync.ControllerNamespace {
-		cs.Error = c.rootRepoClusterStatus(ctx, cs)
-	} else if namespace != "" {
-		cs.Error = c.namespaceRepoClusterStatus(ctx, cs, namespace)
+	// Apply filters:
+	// If namespaceFilter is configsync.ControllerNamespace, only show RootSyncs.
+	// If namespaceFilter is something else, only show RepoSyncs in that namespace.
+	// If namespaceFilter is empty, show all (RootSyncs and RepoSyncs from all namespaces).
+	// If nameFilter is set, only show the specific RootSync/RepoSync.
+
+	if namespaceFilter == configsync.ControllerNamespace {
+		// Only RootSyncs, potentially filtered by nameFilter
+		cs.Error = c.rootRepoClusterStatus(ctx, cs, nameFilter, includeResourceDetail)
+	} else if namespaceFilter != "" {
+		// Only RepoSyncs in namespaceFilter, potentially filtered by nameFilter
+		cs.Error = c.namespaceRepoClusterStatus(ctx, cs, namespaceFilter, nameFilter, includeResourceDetail)
 	} else if isOss || (cs.isMulti != nil && *cs.isMulti) {
-		c.multiRepoClusterStatus(ctx, cs)
+		// All RootSyncs and RepoSyncs, potentially filtered by nameFilter for each
+		c.multiRepoClusterStatus(ctx, cs, nameFilter, includeResourceDetail)
 	} else {
-		c.monoRepoClusterStatus(ctx, cs)
+		// Mono-repo mode (no specific filtering by name or namespace here, as it's one overall status)
+		c.monoRepoClusterStatus(ctx, cs) // monoRepoClusterStatus does not currently take nameFilter or includeResourceDetail
 	}
 	return cs
 }
@@ -242,12 +259,14 @@ func (c *ClusterClient) syncingConditionSupported(ctx context.Context) bool {
 
 // multiRepoClusterStatus populates the given ClusterState with the sync status of
 // the multi repos on the ClusterClient's cluster.
-func (c *ClusterClient) multiRepoClusterStatus(ctx context.Context, cs *ClusterState) {
-	// Get the status of all RootSyncs
-	rootErr := c.rootRepoClusterStatus(ctx, cs)
+// nameFilter applies to both RootSyncs and RepoSyncs.
+func (c *ClusterClient) multiRepoClusterStatus(ctx context.Context, cs *ClusterState, nameFilter string, includeResourceDetail bool) {
+	// Get the status of all RootSyncs, filtered by nameFilter if provided.
+	rootErr := c.rootRepoClusterStatus(ctx, cs, nameFilter, includeResourceDetail)
 
-	// Get the status of all RepoSyncs
-	repoErr := c.namespaceRepoClusterStatus(ctx, cs, "")
+	// Get the status of all RepoSyncs, filtered by nameFilter if provided.
+	// Passing "" for namespace to fetch all RepoSyncs.
+	repoErr := c.namespaceRepoClusterStatus(ctx, cs, "", nameFilter, includeResourceDetail)
 	if len(rootErr) > 0 {
 		cs.Error = fmt.Sprintf("Root repo error: %s", rootErr)
 	}
@@ -260,35 +279,58 @@ func (c *ClusterClient) multiRepoClusterStatus(ctx context.Context, cs *ClusterS
 }
 
 // rootRepoClusterStatus populates the given ClusterState with the sync status of
-// config-management-system namespace
-func (c *ClusterClient) rootRepoClusterStatus(ctx context.Context, cs *ClusterState) (errorMsg string) {
+// RootSyncs in the config-management-system namespace.
+// nameFilter applies to the name of the RootSync objects.
+func (c *ClusterClient) rootRepoClusterStatus(ctx context.Context, cs *ClusterState, nameFilter string, includeResourceDetail bool) (errorMsg string) {
 	var errs []string
 	var rootErr string
 	syncingConditionSupported := c.syncingConditionSupported(ctx)
 
-	// Get the status of all RootSyncs
-	var rootRGs []*unstructured.Unstructured
-	rootSyncs, rootSyncNsAndNames, err := c.rootSyncs(ctx)
+	// Get all RootSyncs
+	allRootSyncs, rootSyncNsAndNames, err := c.rootSyncs(ctx)
 	if err != nil {
 		errs = append(errs, err.Error())
+	}
+
+	// Filter RootSyncs by name if nameFilter is provided
+	var filteredRootSyncs []*v1beta1.RootSync
+	var filteredRootSyncNsAndNames []types.NamespacedName
+	if nameFilter != "" {
+		for i, rs := range allRootSyncs {
+			if rs.Name == nameFilter {
+				filteredRootSyncs = append(filteredRootSyncs, rs)
+				filteredRootSyncNsAndNames = append(filteredRootSyncNsAndNames, rootSyncNsAndNames[i])
+				break // Assuming names are unique for RootSyncs
+			}
+		}
+		if len(filteredRootSyncs) == 0 && len(allRootSyncs) > 0 { // nameFilter was set but didn't match anything
+			errs = append(errs, fmt.Sprintf("no RootSync found with name %q in namespace %q", nameFilter, configsync.ControllerNamespace))
+		}
 	} else {
-		rootRGs, err = c.resourceGroups(ctx, configsync.ControllerNamespace, rootSyncNsAndNames)
+		filteredRootSyncs = allRootSyncs
+		filteredRootSyncNsAndNames = rootSyncNsAndNames
+	}
+
+	var rootRGs []*unstructured.Unstructured
+	if err == nil && len(filteredRootSyncs) > 0 { // Only fetch RGs if RootSyncs were found and no prior error
+		rootRGs, err = c.resourceGroups(ctx, configsync.ControllerNamespace, filteredRootSyncNsAndNames)
 		if err != nil {
 			errs = append(errs, err.Error())
 		}
 	}
 
-	if len(rootSyncs) != len(rootRGs) {
-		errs = append(errs, fmt.Sprintf("expected the number of RootSyncs and ResourceGroups to be equal, but found %d RootSyncs and %d ResourceGroups", len(rootSyncs), len(rootRGs)))
-	} else if len(rootSyncs) != 0 {
+	if len(filteredRootSyncs) != len(rootRGs) && len(errs) == 0 { // Avoid compounding errors if already reported
+		errs = append(errs, fmt.Sprintf("expected the number of filtered RootSyncs and ResourceGroups to be equal, but found %d RootSyncs and %d ResourceGroups", len(filteredRootSyncs), len(rootRGs)))
+	} else if len(filteredRootSyncs) != 0 {
 		var repos []*RepoState
-		for i, rs := range rootSyncs {
-			rg := rootRGs[i]
-			if rg == nil {
-				// We always expect a ResourceGroup, even if we have no managed resources.
-				errs = append(errs, rgNotFoundErrMsg(rootSyncNsAndNames[i].Name, rootSyncNsAndNames[i].Namespace))
+		for i, rs := range filteredRootSyncs {
+			rg := rootRGs[i] // This assumes rootRGs corresponds to filteredRootSyncs
+			if rg == nil && (rs.Status.Status == "" || multiRepoSyncStatus(rs.Status.Status) == syncedMsg) { // Only error if RG missing for a seemingly OK sync
+				// We always expect a ResourceGroup, even if we have no managed resources, unless the sync itself is failing badly.
+				errs = append(errs, rgNotFoundErrMsg(filteredRootSyncNsAndNames[i].Name, filteredRootSyncNsAndNames[i].Namespace))
 			}
-			repos = append(repos, RootRepoStatus(rs, rg, syncingConditionSupported))
+			// Pass includeResourceDetail to RootRepoStatus
+			repos = append(repos, RootRepoStatus(rs, rg, syncingConditionSupported, includeResourceDetail))
 		}
 		sort.Slice(repos, func(i, j int) bool {
 			return repos[i].scope < repos[j].scope || (repos[i].scope == repos[j].scope && repos[i].syncName < repos[j].syncName)
@@ -308,34 +350,67 @@ func (c *ClusterClient) rootRepoClusterStatus(ctx context.Context, cs *ClusterSt
 }
 
 // namespaceRepoClusterStatus populates the given ClusterState with the sync status of
-// the specified namespace repo on the ClusterClient's cluster.
-func (c *ClusterClient) namespaceRepoClusterStatus(ctx context.Context, cs *ClusterState, ns string) (errorMsg string) {
+// RepoSyncs. If nsFilter is empty, it fetches for all namespaces.
+// nameFilter applies to the name of the RepoSync objects.
+func (c *ClusterClient) namespaceRepoClusterStatus(ctx context.Context, cs *ClusterState, nsFilter, nameFilter string, includeResourceDetail bool) (errorMsg string) {
 	var errs []string
 	var repoErr string
 	syncingConditionSupported := c.syncingConditionSupported(ctx)
 
-	var rgs []*unstructured.Unstructured
-	syncs, nsAndNames, err := c.repoSyncs(ctx, ns)
+	// Get all RepoSyncs (potentially filtered by nsFilter)
+	allRepoSyncs, repoSyncNsAndNames, err := c.repoSyncs(ctx, nsFilter)
 	if err != nil {
 		errs = append(errs, err.Error())
+	}
+
+	// Filter RepoSyncs by name if nameFilter is provided
+	var filteredRepoSyncs []*v1beta1.RepoSync
+	var filteredRepoSyncNsAndNames []types.NamespacedName
+	if nameFilter != "" {
+		for i, rs := range allRepoSyncs {
+			if rs.Name == nameFilter {
+				filteredRepoSyncs = append(filteredRepoSyncs, rs)
+				filteredRepoSyncNsAndNames = append(filteredRepoSyncNsAndNames, repoSyncNsAndNames[i])
+				// Allow multiple RepoSyncs with the same name if in different namespaces (if nsFilter is empty)
+				// If nsFilter is set, then names should be unique within that namespace.
+				if nsFilter != "" {
+					break
+				}
+			}
+		}
+		if len(filteredRepoSyncs) == 0 && len(allRepoSyncs) > 0 { // nameFilter was set but didn't match
+			if nsFilter != "" {
+				errs = append(errs, fmt.Sprintf("no RepoSync found with name %q in namespace %q", nameFilter, nsFilter))
+			} else {
+				errs = append(errs, fmt.Sprintf("no RepoSync found with name %q in any namespace", nameFilter))
+			}
+		}
 	} else {
-		rgs, err = c.resourceGroups(ctx, ns, nsAndNames)
+		filteredRepoSyncs = allRepoSyncs
+		filteredRepoSyncNsAndNames = repoSyncNsAndNames
+	}
+
+	var rgs []*unstructured.Unstructured
+	if err == nil && len(filteredRepoSyncs) > 0 { // Only fetch RGs if RepoSyncs were found and no prior error
+		// When nsFilter is empty, resourceGroups need to be fetched across all namespaces.
+		// The existing c.resourceGroups takes ns which would be nsFilter here.
+		rgs, err = c.resourceGroups(ctx, nsFilter, filteredRepoSyncNsAndNames)
 		if err != nil {
 			errs = append(errs, err.Error())
 		}
 	}
 
-	if len(syncs) != len(rgs) {
-		errs = append(errs, fmt.Sprintf("expected the number of RepoSyncs and ResourceGroups to be equal, but found %d RepoSyncs and %d ResourceGroups", len(syncs), len(rgs)))
-	} else if len(syncs) != 0 {
+	if len(filteredRepoSyncs) != len(rgs) && len(errs) == 0 { // Avoid compounding errors
+		errs = append(errs, fmt.Sprintf("expected the number of filtered RepoSyncs and ResourceGroups to be equal, but found %d RepoSyncs and %d ResourceGroups", len(filteredRepoSyncs), len(rgs)))
+	} else if len(filteredRepoSyncs) != 0 {
 		var repos []*RepoState
-		for i, rs := range syncs {
-			rg := rgs[i]
-			if rg == nil {
-				// We always expect a ResourceGroup, even if we have no managed resources.
-				errs = append(errs, rgNotFoundErrMsg(nsAndNames[i].Name, nsAndNames[i].Namespace))
+		for i, rs := range filteredRepoSyncs {
+			rg := rgs[i] // Assumes rgs corresponds to filteredRepoSyncs
+			if rg == nil && (rs.Status.Status == "" || multiRepoSyncStatus(rs.Status.Status) == syncedMsg) { // Only error if RG missing for a seemingly OK sync
+				errs = append(errs, rgNotFoundErrMsg(filteredRepoSyncNsAndNames[i].Name, filteredRepoSyncNsAndNames[i].Namespace))
 			}
-			repos = append(repos, namespaceRepoStatus(rs, rg, syncingConditionSupported))
+			// Pass includeResourceDetail to namespaceRepoStatus
+			repos = append(repos, namespaceRepoStatus(rs, rg, syncingConditionSupported, includeResourceDetail))
 		}
 		sort.Slice(repos, func(i, j int) bool {
 			return repos[i].scope < repos[j].scope || (repos[i].scope == repos[j].scope && repos[i].syncName < repos[j].syncName)
