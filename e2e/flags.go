@@ -23,7 +23,7 @@ import (
 	"strings"
 	"testing"
 
-	"kpt.dev/configsync/pkg/util"
+	"github.com/GoogleContainerTools/config-sync/pkg/util"
 )
 
 // stringListFlag parses a comma delimited string field into a string slice

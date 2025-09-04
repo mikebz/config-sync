@@ -5,9 +5,9 @@ package v1
 import (
 	http "net/http"
 
+	configmanagementv1 "github.com/GoogleContainerTools/config-sync/pkg/api/configmanagement/v1"
+	scheme "github.com/GoogleContainerTools/config-sync/pkg/generated/clientset/versioned/scheme"
 	rest "k8s.io/client-go/rest"
-	configmanagementv1 "kpt.dev/configsync/pkg/api/configmanagement/v1"
-	scheme "kpt.dev/configsync/pkg/generated/clientset/versioned/scheme"
 )
 
 type ConfigmanagementV1Interface interface {

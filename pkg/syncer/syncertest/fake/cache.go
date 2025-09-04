@@ -21,13 +21,13 @@ import (
 	"sync"
 	"time"
 
+	"github.com/GoogleContainerTools/config-sync/pkg/kinds"
+	watchutil "github.com/GoogleContainerTools/config-sync/pkg/util/watch"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	apimeta "k8s.io/apimachinery/pkg/api/meta"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	k8scache "k8s.io/client-go/tools/cache"
 	"k8s.io/klog/v2"
-	"kpt.dev/configsync/pkg/kinds"
-	watchutil "kpt.dev/configsync/pkg/util/watch"
 	"sigs.k8s.io/controller-runtime/pkg/cache"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )

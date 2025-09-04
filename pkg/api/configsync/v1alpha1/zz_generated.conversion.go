@@ -8,12 +8,12 @@ package v1alpha1
 import (
 	unsafe "unsafe"
 
+	configsync "github.com/GoogleContainerTools/config-sync/pkg/api/configsync"
+	v1beta1 "github.com/GoogleContainerTools/config-sync/pkg/api/configsync/v1beta1"
 	v1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	conversion "k8s.io/apimachinery/pkg/conversion"
 	runtime "k8s.io/apimachinery/pkg/runtime"
-	configsync "kpt.dev/configsync/pkg/api/configsync"
-	v1beta1 "kpt.dev/configsync/pkg/api/configsync/v1beta1"
 )
 
 func init() {

@@ -24,11 +24,11 @@ import (
 	"strings"
 	"time"
 
+	"github.com/GoogleContainerTools/config-sync/e2e"
+	"github.com/GoogleContainerTools/config-sync/e2e/nomostest/retry"
+	"github.com/GoogleContainerTools/config-sync/e2e/nomostest/testlogger"
 	"github.com/google/uuid"
 	"go.uber.org/multierr"
-	"kpt.dev/configsync/e2e"
-	"kpt.dev/configsync/e2e/nomostest/retry"
-	"kpt.dev/configsync/e2e/nomostest/testlogger"
 )
 
 const (

@@ -19,8 +19,8 @@ import (
 	"sync"
 	"time"
 
-	"kpt.dev/configsync/pkg/core"
-	"kpt.dev/configsync/pkg/status"
+	"github.com/GoogleContainerTools/config-sync/pkg/core"
+	"github.com/GoogleContainerTools/config-sync/pkg/status"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 

@@ -17,9 +17,9 @@ package resourcegroup
 import (
 	"fmt"
 
+	"github.com/GoogleContainerTools/config-sync/pkg/api/kpt.dev/v1alpha1"
+	"github.com/GoogleContainerTools/config-sync/pkg/metadata"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
-	"kpt.dev/configsync/pkg/api/kpt.dev/v1alpha1"
-	"kpt.dev/configsync/pkg/metadata"
 	"sigs.k8s.io/cli-utils/pkg/common"
 )
 

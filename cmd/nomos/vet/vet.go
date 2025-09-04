@@ -18,10 +18,10 @@ import (
 	"fmt"
 	"strconv"
 
+	"github.com/GoogleContainerTools/config-sync/cmd/nomos/flags"
+	"github.com/GoogleContainerTools/config-sync/pkg/api/configsync"
+	"github.com/GoogleContainerTools/config-sync/pkg/importer/analyzer/validation/system"
 	"github.com/spf13/cobra"
-	"kpt.dev/configsync/cmd/nomos/flags"
-	"kpt.dev/configsync/pkg/api/configsync"
-	"kpt.dev/configsync/pkg/importer/analyzer/validation/system"
 )
 
 var (

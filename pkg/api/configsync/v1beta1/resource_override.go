@@ -15,9 +15,9 @@
 package v1beta1
 
 import (
+	"github.com/GoogleContainerTools/config-sync/pkg/api/configsync"
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"kpt.dev/configsync/pkg/api/configsync"
 )
 
 // OverrideSpec allows to override the settings for a reconciler pod

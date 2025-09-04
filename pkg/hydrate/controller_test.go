@@ -21,13 +21,13 @@ import (
 	"testing"
 	"time"
 
+	"github.com/GoogleContainerTools/config-sync/pkg/api/configsync"
+	"github.com/GoogleContainerTools/config-sync/pkg/importer/filesystem/cmpath"
+	ft "github.com/GoogleContainerTools/config-sync/pkg/importer/filesystem/filesystemtest"
+	"github.com/GoogleContainerTools/config-sync/pkg/testing/testerrors"
 	"github.com/stretchr/testify/assert"
 	"k8s.io/apimachinery/pkg/util/rand"
 	"k8s.io/apimachinery/pkg/util/wait"
-	"kpt.dev/configsync/pkg/api/configsync"
-	"kpt.dev/configsync/pkg/importer/filesystem/cmpath"
-	ft "kpt.dev/configsync/pkg/importer/filesystem/filesystemtest"
-	"kpt.dev/configsync/pkg/testing/testerrors"
 )
 
 const (

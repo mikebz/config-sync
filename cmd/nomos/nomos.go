@@ -21,18 +21,18 @@ import (
 
 	"github.com/spf13/cobra"
 	// kubectl auth provider plugins - needed for oidc plugin
+	"github.com/GoogleContainerTools/config-sync/cmd/nomos/bugreport"
+	"github.com/GoogleContainerTools/config-sync/cmd/nomos/hydrate"
+	"github.com/GoogleContainerTools/config-sync/cmd/nomos/initialize"
+	"github.com/GoogleContainerTools/config-sync/cmd/nomos/migrate"
+	"github.com/GoogleContainerTools/config-sync/cmd/nomos/status"
+	"github.com/GoogleContainerTools/config-sync/cmd/nomos/version"
+	"github.com/GoogleContainerTools/config-sync/cmd/nomos/vet"
+	"github.com/GoogleContainerTools/config-sync/pkg/api/configmanagement"
+	"github.com/GoogleContainerTools/config-sync/pkg/client/restconfig"
+	pkgversion "github.com/GoogleContainerTools/config-sync/pkg/version"
 	_ "k8s.io/client-go/plugin/pkg/client/auth"
 	"k8s.io/klog/v2"
-	"kpt.dev/configsync/cmd/nomos/bugreport"
-	"kpt.dev/configsync/cmd/nomos/hydrate"
-	"kpt.dev/configsync/cmd/nomos/initialize"
-	"kpt.dev/configsync/cmd/nomos/migrate"
-	"kpt.dev/configsync/cmd/nomos/status"
-	"kpt.dev/configsync/cmd/nomos/version"
-	"kpt.dev/configsync/cmd/nomos/vet"
-	"kpt.dev/configsync/pkg/api/configmanagement"
-	"kpt.dev/configsync/pkg/client/restconfig"
-	pkgversion "kpt.dev/configsync/pkg/version"
 	"sigs.k8s.io/controller-runtime/pkg/client/config"
 )
 

@@ -15,9 +15,9 @@
 package k8sobjects
 
 import (
+	"github.com/GoogleContainerTools/config-sync/pkg/core"
+	"github.com/GoogleContainerTools/config-sync/pkg/resourcegroup"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
-	"kpt.dev/configsync/pkg/core"
-	"kpt.dev/configsync/pkg/resourcegroup"
 )
 
 // ResourceGroupObject initializes a ResourceGroup.

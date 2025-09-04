@@ -5,9 +5,9 @@ package externalversions
 import (
 	fmt "fmt"
 
+	v1 "github.com/GoogleContainerTools/config-sync/pkg/api/configmanagement/v1"
 	schema "k8s.io/apimachinery/pkg/runtime/schema"
 	cache "k8s.io/client-go/tools/cache"
-	v1 "kpt.dev/configsync/pkg/api/configmanagement/v1"
 )
 
 // GenericInformer is type of SharedIndexInformer which will locate and delegate to other

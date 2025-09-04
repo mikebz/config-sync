@@ -22,8 +22,8 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 
+	v1 "github.com/GoogleContainerTools/config-sync/pkg/api/configmanagement/v1"
 	"github.com/davecgh/go-spew/spew"
-	v1 "kpt.dev/configsync/pkg/api/configmanagement/v1"
 )
 
 func TestDecodeResources(t *testing.T) {

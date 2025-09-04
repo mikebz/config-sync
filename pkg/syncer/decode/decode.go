@@ -18,11 +18,11 @@ package decode
 import (
 	"fmt"
 
+	v1 "github.com/GoogleContainerTools/config-sync/pkg/api/configmanagement/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/runtime/serializer"
-	v1 "kpt.dev/configsync/pkg/api/configmanagement/v1"
 )
 
 // Decoder decodes GenericResources from NamespaceConfigs / ClusterConfigs to

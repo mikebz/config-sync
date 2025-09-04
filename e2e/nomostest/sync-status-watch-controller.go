@@ -22,10 +22,10 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 
-	"kpt.dev/configsync/e2e/nomostest/testing"
-	"kpt.dev/configsync/pkg/kinds"
+	"github.com/GoogleContainerTools/config-sync/e2e/nomostest/testing"
+	"github.com/GoogleContainerTools/config-sync/pkg/kinds"
 
-	"kpt.dev/configsync/pkg/core/k8sobjects"
+	"github.com/GoogleContainerTools/config-sync/pkg/core/k8sobjects"
 )
 
 // StatusWatchNamespace is the namespace for the sync status watch controller.

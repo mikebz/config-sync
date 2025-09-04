@@ -16,7 +16,7 @@
 
 ######################################################################
 
-CANONICAL_GOPATH := $(shell go env GOPATH)/src/kpt.dev/configsync
+CANONICAL_GOPATH := $(shell go env GOPATH)/src/github.com/GoogleContainerTools/config-sync
 
 .PHONY: symlink-gopath
 symlink-gopath:

@@ -18,9 +18,9 @@ import (
 	"flag"
 	"os"
 
+	"github.com/GoogleContainerTools/config-sync/cmd/junit-report/resetfailure"
 	"github.com/spf13/cobra"
 	"k8s.io/klog/v2"
-	"kpt.dev/configsync/cmd/junit-report/resetfailure"
 )
 
 var (

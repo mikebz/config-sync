@@ -14,7 +14,7 @@
 
 package controllers
 
-import "kpt.dev/configsync/pkg/reconcilermanager"
+import "github.com/GoogleContainerTools/config-sync/pkg/reconcilermanager"
 
 const (
 	// GCPSAAnnotationKey is used to annotate the following service accounts:

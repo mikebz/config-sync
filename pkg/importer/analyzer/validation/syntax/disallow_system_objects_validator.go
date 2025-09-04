@@ -15,8 +15,8 @@
 package syntax
 
 import (
+	"github.com/GoogleContainerTools/config-sync/pkg/kinds"
 	"k8s.io/apimachinery/pkg/runtime/schema"
-	"kpt.dev/configsync/pkg/kinds"
 )
 
 // IsSystemOnly returns true if the GVK is only allowed in the system/ directory.

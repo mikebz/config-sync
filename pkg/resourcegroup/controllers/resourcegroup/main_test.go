@@ -19,12 +19,12 @@ import (
 	"path/filepath"
 	"testing"
 
+	"github.com/GoogleContainerTools/config-sync/pkg/api/kpt.dev/v1alpha1"
+	"github.com/GoogleContainerTools/config-sync/pkg/testing/testcontroller"
 	v1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	"k8s.io/client-go/kubernetes/scheme"
 	"k8s.io/client-go/rest"
 	"k8s.io/klog/v2"
-	"kpt.dev/configsync/pkg/api/kpt.dev/v1alpha1"
-	"kpt.dev/configsync/pkg/testing/testcontroller"
 	"sigs.k8s.io/controller-runtime/pkg/envtest"
 	// +kubebuilder:scaffold:imports
 )

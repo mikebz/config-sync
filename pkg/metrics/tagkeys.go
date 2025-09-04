@@ -15,8 +15,8 @@
 package metrics
 
 import (
+	"github.com/GoogleContainerTools/config-sync/pkg/api/configsync/v1beta1"
 	"go.opencensus.io/tag"
-	"kpt.dev/configsync/pkg/api/configsync/v1beta1"
 )
 
 var (

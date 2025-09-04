@@ -1,4 +1,4 @@
-module kpt.dev/configsync
+module github.com/GoogleContainerTools/config-sync
 
 go 1.24.0
 

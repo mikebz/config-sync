@@ -17,10 +17,10 @@ package resourcemap
 import (
 	"testing"
 
+	"github.com/GoogleContainerTools/config-sync/pkg/api/kpt.dev/v1alpha1"
 	"github.com/stretchr/testify/assert"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/types"
-	"kpt.dev/configsync/pkg/api/kpt.dev/v1alpha1"
 )
 
 func TestResourceMapReconcile(t *testing.T) {

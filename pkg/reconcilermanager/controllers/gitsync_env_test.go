@@ -17,9 +17,9 @@ package controllers
 import (
 	"testing"
 
+	"github.com/GoogleContainerTools/config-sync/pkg/core/k8sobjects"
 	"github.com/stretchr/testify/assert"
 	corev1 "k8s.io/api/core/v1"
-	"kpt.dev/configsync/pkg/core/k8sobjects"
 )
 
 func TestGithubAppFromSecret(t *testing.T) {

@@ -3,23 +3,23 @@
 package fake
 
 import (
+	clientset "github.com/GoogleContainerTools/config-sync/pkg/generated/clientset/versioned"
+	configmanagementv1 "github.com/GoogleContainerTools/config-sync/pkg/generated/clientset/versioned/typed/configmanagement/v1"
+	fakeconfigmanagementv1 "github.com/GoogleContainerTools/config-sync/pkg/generated/clientset/versioned/typed/configmanagement/v1/fake"
+	configsyncv1alpha1 "github.com/GoogleContainerTools/config-sync/pkg/generated/clientset/versioned/typed/configsync/v1alpha1"
+	fakeconfigsyncv1alpha1 "github.com/GoogleContainerTools/config-sync/pkg/generated/clientset/versioned/typed/configsync/v1alpha1/fake"
+	configsyncv1beta1 "github.com/GoogleContainerTools/config-sync/pkg/generated/clientset/versioned/typed/configsync/v1beta1"
+	fakeconfigsyncv1beta1 "github.com/GoogleContainerTools/config-sync/pkg/generated/clientset/versioned/typed/configsync/v1beta1/fake"
+	hubv1 "github.com/GoogleContainerTools/config-sync/pkg/generated/clientset/versioned/typed/hub/v1"
+	fakehubv1 "github.com/GoogleContainerTools/config-sync/pkg/generated/clientset/versioned/typed/hub/v1/fake"
+	kptv1alpha1 "github.com/GoogleContainerTools/config-sync/pkg/generated/clientset/versioned/typed/kpt.dev/v1alpha1"
+	fakekptv1alpha1 "github.com/GoogleContainerTools/config-sync/pkg/generated/clientset/versioned/typed/kpt.dev/v1alpha1/fake"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/watch"
 	"k8s.io/client-go/discovery"
 	fakediscovery "k8s.io/client-go/discovery/fake"
 	"k8s.io/client-go/testing"
-	clientset "kpt.dev/configsync/pkg/generated/clientset/versioned"
-	configmanagementv1 "kpt.dev/configsync/pkg/generated/clientset/versioned/typed/configmanagement/v1"
-	fakeconfigmanagementv1 "kpt.dev/configsync/pkg/generated/clientset/versioned/typed/configmanagement/v1/fake"
-	configsyncv1alpha1 "kpt.dev/configsync/pkg/generated/clientset/versioned/typed/configsync/v1alpha1"
-	fakeconfigsyncv1alpha1 "kpt.dev/configsync/pkg/generated/clientset/versioned/typed/configsync/v1alpha1/fake"
-	configsyncv1beta1 "kpt.dev/configsync/pkg/generated/clientset/versioned/typed/configsync/v1beta1"
-	fakeconfigsyncv1beta1 "kpt.dev/configsync/pkg/generated/clientset/versioned/typed/configsync/v1beta1/fake"
-	hubv1 "kpt.dev/configsync/pkg/generated/clientset/versioned/typed/hub/v1"
-	fakehubv1 "kpt.dev/configsync/pkg/generated/clientset/versioned/typed/hub/v1/fake"
-	kptv1alpha1 "kpt.dev/configsync/pkg/generated/clientset/versioned/typed/kpt.dev/v1alpha1"
-	fakekptv1alpha1 "kpt.dev/configsync/pkg/generated/clientset/versioned/typed/kpt.dev/v1alpha1/fake"
 )
 
 // NewSimpleClientset returns a clientset that will respond with the provided objects.

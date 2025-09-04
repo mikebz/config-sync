@@ -18,12 +18,12 @@ import (
 	"context"
 	"time"
 
+	"github.com/GoogleContainerTools/config-sync/pkg/api/configsync"
+	"github.com/GoogleContainerTools/config-sync/pkg/core"
 	"go.opencensus.io/stats"
 	"go.opencensus.io/tag"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/klog/v2"
-	"kpt.dev/configsync/pkg/api/configsync"
-	"kpt.dev/configsync/pkg/core"
 )
 
 // RecordReconcileDuration produces a measurement for the ReconcileDuration view.

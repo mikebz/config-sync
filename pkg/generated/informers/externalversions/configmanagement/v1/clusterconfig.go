@@ -6,14 +6,14 @@ import (
 	context "context"
 	time "time"
 
+	apiconfigmanagementv1 "github.com/GoogleContainerTools/config-sync/pkg/api/configmanagement/v1"
+	versioned "github.com/GoogleContainerTools/config-sync/pkg/generated/clientset/versioned"
+	internalinterfaces "github.com/GoogleContainerTools/config-sync/pkg/generated/informers/externalversions/internalinterfaces"
+	configmanagementv1 "github.com/GoogleContainerTools/config-sync/pkg/generated/listers/configmanagement/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	runtime "k8s.io/apimachinery/pkg/runtime"
 	watch "k8s.io/apimachinery/pkg/watch"
 	cache "k8s.io/client-go/tools/cache"
-	apiconfigmanagementv1 "kpt.dev/configsync/pkg/api/configmanagement/v1"
-	versioned "kpt.dev/configsync/pkg/generated/clientset/versioned"
-	internalinterfaces "kpt.dev/configsync/pkg/generated/informers/externalversions/internalinterfaces"
-	configmanagementv1 "kpt.dev/configsync/pkg/generated/listers/configmanagement/v1"
 )
 
 // ClusterConfigInformer provides access to a shared informer and lister for

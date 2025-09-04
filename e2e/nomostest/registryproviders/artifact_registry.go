@@ -18,8 +18,8 @@ import (
 	"fmt"
 	"strings"
 
-	"kpt.dev/configsync/e2e"
-	"kpt.dev/configsync/e2e/nomostest/testshell"
+	"github.com/GoogleContainerTools/config-sync/e2e"
+	"github.com/GoogleContainerTools/config-sync/e2e/nomostest/testshell"
 )
 
 // DefaultLocation is the default location in which to host Artifact Registry

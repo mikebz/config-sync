@@ -18,7 +18,7 @@
 
 ##### CONFIG #####
 
-REPO := kpt.dev/configsync
+REPO := github.com/GoogleContainerTools/config-sync
 
 # Some of our recipes use bash syntax, so explicitly set the shell to bash.
 SHELL := /bin/bash

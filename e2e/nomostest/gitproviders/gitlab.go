@@ -22,9 +22,9 @@ import (
 	"strings"
 	"time"
 
+	"github.com/GoogleContainerTools/config-sync/e2e"
 	"github.com/google/uuid"
 	"go.uber.org/multierr"
-	"kpt.dev/configsync/e2e"
 )
 
 const (

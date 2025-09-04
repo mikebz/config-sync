@@ -17,8 +17,8 @@ package log
 import (
 	"flag"
 
+	"github.com/GoogleContainerTools/config-sync/pkg/version"
 	"k8s.io/klog/v2"
-	"kpt.dev/configsync/pkg/version"
 )
 
 // Setup sets up default logging configs for Nomos applications and logs the preamble.

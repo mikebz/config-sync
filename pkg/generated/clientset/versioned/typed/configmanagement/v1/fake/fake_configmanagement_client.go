@@ -3,9 +3,9 @@
 package fake
 
 import (
+	v1 "github.com/GoogleContainerTools/config-sync/pkg/generated/clientset/versioned/typed/configmanagement/v1"
 	rest "k8s.io/client-go/rest"
 	testing "k8s.io/client-go/testing"
-	v1 "kpt.dev/configsync/pkg/generated/clientset/versioned/typed/configmanagement/v1"
 )
 
 type FakeConfigmanagementV1 struct {

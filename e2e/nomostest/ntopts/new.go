@@ -15,9 +15,9 @@
 package ntopts
 
 import (
+	"github.com/GoogleContainerTools/config-sync/e2e"
+	"github.com/GoogleContainerTools/config-sync/e2e/nomostest/testing"
 	"k8s.io/client-go/rest"
-	"kpt.dev/configsync/e2e"
-	"kpt.dev/configsync/e2e/nomostest/testing"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 

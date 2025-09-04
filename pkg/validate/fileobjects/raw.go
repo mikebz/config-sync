@@ -15,16 +15,16 @@
 package fileobjects
 
 import (
+	"github.com/GoogleContainerTools/config-sync/pkg/declared"
+	"github.com/GoogleContainerTools/config-sync/pkg/importer/analyzer/ast"
+	"github.com/GoogleContainerTools/config-sync/pkg/importer/customresources"
+	"github.com/GoogleContainerTools/config-sync/pkg/importer/filesystem/cmpath"
+	"github.com/GoogleContainerTools/config-sync/pkg/reconciler/namespacecontroller"
+	"github.com/GoogleContainerTools/config-sync/pkg/status"
+	utildiscovery "github.com/GoogleContainerTools/config-sync/pkg/util/discovery"
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/klog/v2"
-	"kpt.dev/configsync/pkg/declared"
-	"kpt.dev/configsync/pkg/importer/analyzer/ast"
-	"kpt.dev/configsync/pkg/importer/customresources"
-	"kpt.dev/configsync/pkg/importer/filesystem/cmpath"
-	"kpt.dev/configsync/pkg/reconciler/namespacecontroller"
-	"kpt.dev/configsync/pkg/status"
-	utildiscovery "kpt.dev/configsync/pkg/util/discovery"
 )
 
 // RawVisitor is a function that validates or hydrates Raw objects.

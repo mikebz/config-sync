@@ -19,12 +19,12 @@ import (
 	"os"
 	"time"
 
+	"github.com/GoogleContainerTools/config-sync/pkg/api/configsync/v1beta1"
+	"github.com/GoogleContainerTools/config-sync/pkg/reconcilermanager"
+	"github.com/GoogleContainerTools/config-sync/pkg/status"
 	"go.opencensus.io/stats"
 	"go.opencensus.io/tag"
 	"k8s.io/klog/v2"
-	"kpt.dev/configsync/pkg/api/configsync/v1beta1"
-	"kpt.dev/configsync/pkg/reconcilermanager"
-	"kpt.dev/configsync/pkg/status"
 )
 
 func record(ctx context.Context, ms ...stats.Measurement) {

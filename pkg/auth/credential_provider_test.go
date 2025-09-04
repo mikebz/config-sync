@@ -22,9 +22,9 @@ import (
 
 	"cloud.google.com/go/auth/credentials"
 	"cloud.google.com/go/compute/metadata"
+	"github.com/GoogleContainerTools/config-sync/pkg/testing/testerrors"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	"kpt.dev/configsync/pkg/testing/testerrors"
 )
 
 const (

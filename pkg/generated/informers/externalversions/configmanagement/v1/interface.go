@@ -3,7 +3,7 @@
 package v1
 
 import (
-	internalinterfaces "kpt.dev/configsync/pkg/generated/informers/externalversions/internalinterfaces"
+	internalinterfaces "github.com/GoogleContainerTools/config-sync/pkg/generated/informers/externalversions/internalinterfaces"
 )
 
 // Interface provides access to all the informers in this group version.

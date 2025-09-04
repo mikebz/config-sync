@@ -23,10 +23,10 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/GoogleContainerTools/config-sync/e2e"
+	"github.com/GoogleContainerTools/config-sync/e2e/nomostest"
+	"github.com/GoogleContainerTools/config-sync/pkg/util"
 	"go.uber.org/multierr"
-	"kpt.dev/configsync/e2e"
-	"kpt.dev/configsync/e2e/nomostest"
-	"kpt.dev/configsync/pkg/util"
 )
 
 // This is a bit of a hack to enforce our --num-clusters flag over the --test.parallel
