@@ -18,9 +18,9 @@ import (
 	"bytes"
 	"fmt"
 	"testing"
+	"time"
 
 	"github.com/GoogleContainerTools/config-sync/cmd/nomos/util"
-	v1 "github.com/GoogleContainerTools/config-sync/pkg/api/configmanagement/v1"
 	"github.com/GoogleContainerTools/config-sync/pkg/api/configsync"
 	"github.com/GoogleContainerTools/config-sync/pkg/api/configsync/v1beta1"
 	"github.com/GoogleContainerTools/config-sync/pkg/core"
@@ -67,7 +67,7 @@ var (
 		ErrorCountAfterTruncation: 2,
 	}
 
-	lastSyncTimestamp = metav1.Now()
+	lastSyncTimestamp = metav1.Time{Time: time.Date(2022, 8, 15, 12, 0, 0, 0, time.UTC)}
 )
 
 func TestRepoState_PrintRows(t *testing.T) {
@@ -354,86 +354,6 @@ func TestRepoState_PrintRows(t *testing.T) {
 			got := buffer.String()
 			if got != tc.want {
 				t.Errorf("got:\n%s\nwant:\n%s", got, tc.want)
-			}
-		})
-	}
-}
-
-func TestRepoState_MonoRepoStatus(t *testing.T) {
-	testCases := []struct {
-		name   string
-		git    *v1beta1.Git
-		status v1.RepoStatus
-		want   *RepoState
-	}{
-		{
-			"repo is pending first sync",
-			git,
-			v1.RepoStatus{
-				Source: v1.RepoSourceStatus{},
-				Import: v1.RepoImportStatus{},
-				Sync:   v1.RepoSyncStatus{},
-			},
-			&RepoState{
-				scope:  "<root>",
-				git:    git,
-				status: "PENDING",
-				commit: "N/A",
-			},
-		},
-		{
-			"repo is synced",
-			git,
-			v1.RepoStatus{
-				Source: v1.RepoSourceStatus{
-					Token: "abc123",
-				},
-				Import: v1.RepoImportStatus{
-					Token: "abc123",
-				},
-				Sync: v1.RepoSyncStatus{
-					LatestToken: "abc123",
-				},
-			},
-			&RepoState{
-				scope:  "<root>",
-				git:    git,
-				status: "SYNCED",
-				commit: "abc123",
-			},
-		},
-		{
-			"repo has errors",
-			git,
-			v1.RepoStatus{
-				Source: v1.RepoSourceStatus{
-					Token: "def456",
-				},
-				Import: v1.RepoImportStatus{
-					Token: "def456",
-					Errors: []v1.ConfigManagementError{
-						{ErrorMessage: "KNV2010: I am unhappy"},
-					},
-				},
-				Sync: v1.RepoSyncStatus{
-					LatestToken: "abc123",
-				},
-			},
-			&RepoState{
-				scope:        "<root>",
-				git:          git,
-				status:       "ERROR",
-				commit:       "abc123",
-				errors:       []string{"KNV2010: I am unhappy"},
-				errorSummary: errorSummayWithOneError,
-			},
-		},
-	}
-	for _, tc := range testCases {
-		t.Run(tc.name, func(t *testing.T) {
-			got := monoRepoStatus(tc.git, tc.status)
-			if diff := cmp.Diff(tc.want, got, cmp.AllowUnexported(*tc.want)); diff != "" {
-				t.Error(diff)
 			}
 		})
 	}
@@ -3073,6 +2993,10 @@ gke_sample-project_europe-west1-b_cluster-2
 		t.Run(tc.name, func(t *testing.T) {
 			var buffer bytes.Buffer
 			name = "root-sync-2"
+			t.Cleanup(func() {
+				// Needed so that it doesn't conflict with other unit tests
+				name = ""
+			})
 			tc.cluster.printRows(&buffer)
 			got := buffer.String()
 			if got != tc.want {
