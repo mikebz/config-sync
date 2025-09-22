@@ -144,7 +144,7 @@ var GitProvider = newStringEnum("git-provider", util.EnvString("E2E_GIT_PROVIDER
 
 // BitbucketWorkspace is the Bitbucket workspace to use when git-provider=bitbucket.
 // This is parametrized so that CI can be updated without requiring cherry-picks.
-var BitbucketWorkspace = flag.String("bitbucket-workspace", util.EnvString("E2E_BITBUCKET_WORKSPACE", "config-sync-ci-20250814"),
+var BitbucketWorkspace = flag.String("bitbucket-workspace", util.EnvString("E2E_BITBUCKET_WORKSPACE", "config-sync-ci-20250920"),
 	`The Bitbucket workspace to use when git-provider is set to "bitbucket".`)
 
 // OCIProvider is the provider that hosts the OCI repositories.
