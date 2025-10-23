@@ -24,19 +24,25 @@ import (
 	"github.com/GoogleContainerTools/config-sync/pkg/api/kpt.dev/v1alpha1"
 	"github.com/GoogleContainerTools/config-sync/pkg/metadata"
 	"github.com/GoogleContainerTools/config-sync/pkg/reconcilermanager/controllers"
+	"github.com/GoogleContainerTools/config-sync/pkg/resourcegroup/controllers/metrics"
 	"github.com/GoogleContainerTools/config-sync/pkg/resourcegroup/controllers/resourcemap"
 	"github.com/GoogleContainerTools/config-sync/pkg/resourcegroup/controllers/typeresolver"
 	"github.com/GoogleContainerTools/config-sync/pkg/syncer/syncertest/fake"
 	"github.com/GoogleContainerTools/config-sync/pkg/testing/testcontroller"
 	"github.com/GoogleContainerTools/config-sync/pkg/testing/testerrors"
+	"github.com/GoogleContainerTools/config-sync/pkg/testing/testmetrics"
 	"github.com/GoogleContainerTools/config-sync/pkg/testing/testwatch"
 	"github.com/GoogleContainerTools/config-sync/pkg/util/log"
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/go-cmp/cmp/cmpopts"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"go.opencensus.io/stats/view"
+	"go.opencensus.io/tag"
 	corev1 "k8s.io/api/core/v1"
+	v1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/watch"
@@ -47,6 +53,7 @@ import (
 	"sigs.k8s.io/cli-utils/pkg/common"
 	controllerruntime "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/config"
 	"sigs.k8s.io/controller-runtime/pkg/event"
 	"sigs.k8s.io/controller-runtime/pkg/manager"
 	metricsserver "sigs.k8s.io/controller-runtime/pkg/metrics/server"
@@ -65,10 +72,10 @@ func TestReconcile(t *testing.T) {
 	testLogger := testcontroller.NewTestLogger(t)
 	controllerruntime.SetLogger(testLogger)
 
-	// Setup the Manager
+	// Setup the Manager with metrics enabled for testing
 	mgr, err := manager.New(cfg, manager.Options{
-		// Disable metrics
-		Metrics: metricsserver.Options{BindAddress: "0"},
+		// Enable metrics for this test
+		Metrics: metricsserver.Options{BindAddress: "127.0.0.1:0"},
 		Logger:  testLogger.WithName("controller-manager"),
 		// Use a client.WithWatch, instead of just a client.Client
 		NewClient: func(cfg *rest.Config, opts client.Options) (client.Client, error) {
@@ -304,6 +311,303 @@ func TestReconcile(t *testing.T) {
 		newStalledCondition(v1alpha1.FalseConditionStatus, FinishReconciling, finishReconcilingMsg),
 	}
 	_ = waitForResourceGroupStatus(t, ctx, c, rgKey, 3, 1, expectedStatus)
+}
+
+func TestReconcile_Metrics(t *testing.T) {
+	// Register metrics views with test exporter at the beginning
+	exporter := testmetrics.RegisterMetrics(
+		metrics.ResourceCountView,
+		metrics.ReadyResourceCountView,
+		metrics.NamespaceCountView,
+		metrics.ClusterScopedResourceCountView,
+		metrics.CRDCountView,
+		metrics.KCCResourceCountView,
+	)
+
+	// Configure controller-manager to log to the test logger
+	testLogger := testcontroller.NewTestLogger(t)
+	controllerruntime.SetLogger(testLogger)
+
+	// Setup the Manager with metrics enabled for testing
+	mgr, err := manager.New(cfg, manager.Options{
+		// Enable metrics for this test
+		Metrics: metricsserver.Options{BindAddress: "127.0.0.1:0"},
+		Logger:  testLogger.WithName("controller-manager"),
+		// Use a client.WithWatch, instead of just a client.Client
+		NewClient: func(cfg *rest.Config, opts client.Options) (client.Client, error) {
+			return client.NewWithWatch(cfg, opts)
+		},
+		// Skip name validation to allow multiple controllers with the same name
+		Controller: config.Controller{
+			SkipNameValidation: func() *bool { b := true; return &b }(),
+		},
+	})
+	require.NoError(t, err)
+	// Get the watch client built by the manager
+	c := mgr.GetClient().(client.WithWatch)
+
+	ctx := t.Context()
+
+	// Setup the controllers with unique names to avoid conflicts
+	logger := testLogger.WithName("controllers-metrics")
+	channelKpt := make(chan event.GenericEvent)
+	resolver, err := typeresolver.ForManager(mgr, logger.WithName("typeresolver-metrics"))
+	require.NoError(t, err)
+	resMap := resourcemap.NewResourceMap()
+	err = NewRGController(mgr, channelKpt, logger.WithName("resourcegroup-metrics"), resolver, resMap, 0)
+	require.NoError(t, err)
+
+	// Start the manager
+	stopTestManager := testcontroller.StartTestManager(t, mgr)
+	// Block test cleanup until manager is fully stopped
+	defer stopTestManager()
+
+	// Test metrics recording during ResourceGroup reconciliation
+	t.Log("Testing metrics recording...")
+
+	// Create test resources: CRD, KCC PubSub resource, and namespace
+	// 1. Create a CRD for testing
+	crd := &v1.CustomResourceDefinition{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: "testresources.test.example.com",
+		},
+		Spec: v1.CustomResourceDefinitionSpec{
+			Group: "test.example.com",
+			Versions: []v1.CustomResourceDefinitionVersion{
+				{
+					Name:    "v1",
+					Served:  true,
+					Storage: true,
+					Schema: &v1.CustomResourceValidation{
+						OpenAPIV3Schema: &v1.JSONSchemaProps{
+							Type: "object",
+						},
+					},
+				},
+			},
+			Scope: v1.NamespaceScoped,
+			Names: v1.CustomResourceDefinitionNames{
+				Plural:   "testresources",
+				Singular: "testresource",
+				Kind:     "TestResource",
+			},
+		},
+	}
+	err = c.Create(ctx, crd, client.FieldOwner(fake.FieldManager))
+	require.NoError(t, err)
+
+	// 2. Create a KCC PubSub CRD first
+	pubsubCRD := &v1.CustomResourceDefinition{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: "pubsubtopics.pubsub.cnrm.cloud.google.com",
+		},
+		Spec: v1.CustomResourceDefinitionSpec{
+			Group: "pubsub.cnrm.cloud.google.com",
+			Versions: []v1.CustomResourceDefinitionVersion{
+				{
+					Name:    "v1beta1",
+					Served:  true,
+					Storage: true,
+					Schema: &v1.CustomResourceValidation{
+						OpenAPIV3Schema: &v1.JSONSchemaProps{
+							Type: "object",
+							Properties: map[string]v1.JSONSchemaProps{
+								"spec": {
+									Type: "object",
+									Properties: map[string]v1.JSONSchemaProps{
+										"resourceID": {Type: "string"},
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+			Scope: v1.NamespaceScoped,
+			Names: v1.CustomResourceDefinitionNames{
+				Plural:   "pubsubtopics",
+				Singular: "pubsubtopic",
+				Kind:     "PubSubTopic",
+			},
+		},
+	}
+	err = c.Create(ctx, pubsubCRD, client.FieldOwner(fake.FieldManager))
+	require.NoError(t, err)
+
+	// Wait for the CRD to be established
+	require.Eventually(t, func() bool {
+		var crd v1.CustomResourceDefinition
+		if err := c.Get(ctx, client.ObjectKey{Name: "pubsubtopics.pubsub.cnrm.cloud.google.com"}, &crd); err != nil {
+			return false
+		}
+		for _, condition := range crd.Status.Conditions {
+			if condition.Type == v1.Established && condition.Status == v1.ConditionTrue {
+				return true
+			}
+		}
+		return false
+	}, 5*time.Second, 100*time.Millisecond, "CRD should be established")
+
+	// 3. Create a namespace
+	testNamespace := &corev1.Namespace{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: "test-namespace",
+			Annotations: map[string]string{
+				metadata.OwningInventoryKey: "test-inventory",
+			},
+		},
+	}
+	err = c.Create(ctx, testNamespace, client.FieldOwner(fake.FieldManager))
+	require.NoError(t, err)
+
+	// 4. Create a KCC PubSub resource
+	pubsubTopic := &unstructured.Unstructured{
+		Object: map[string]interface{}{
+			"apiVersion": "pubsub.cnrm.cloud.google.com/v1beta1",
+			"kind":       "PubSubTopic",
+			"metadata": map[string]interface{}{
+				"name":      "test-pubsub-topic",
+				"namespace": "default",
+				"annotations": map[string]interface{}{
+					metadata.OwningInventoryKey: "test-inventory",
+				},
+			},
+			"spec": map[string]interface{}{
+				"resourceID": "test-pubsub-topic",
+			},
+		},
+	}
+	err = c.Create(ctx, pubsubTopic, client.FieldOwner(fake.FieldManager))
+	require.NoError(t, err)
+
+	// Create ResourceGroup metadata for the two resources
+	namespaceRes := v1alpha1.ObjMetadata{
+		Name:      "test-namespace",
+		Namespace: "",
+		GroupKind: v1alpha1.GroupKind{
+			Group: "",
+			Kind:  "Namespace",
+		},
+	}
+	crdRes := v1alpha1.ObjMetadata{
+		Name:      "testresources.test.example.com",
+		Namespace: "",
+		GroupKind: v1alpha1.GroupKind{
+			Group: "apiextensions.k8s.io",
+			Kind:  "CustomResourceDefinition",
+		},
+	}
+	// Add a KCC resource metadata (without creating the actual resource)
+	pubsubRes := v1alpha1.ObjMetadata{
+		Name:      "test-pubsub-topic",
+		Namespace: "default",
+		GroupKind: v1alpha1.GroupKind{
+			Group: "pubsub.cnrm.cloud.google.com",
+			Kind:  "PubSubTopic",
+		},
+	}
+
+	metricsResources := []v1alpha1.ObjMetadata{namespaceRes, crdRes, pubsubRes}
+
+	metricsResgroupKpt := &v1alpha1.ResourceGroup{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "test-rg-metrics",
+			Namespace: rgNamespace,
+			Labels: map[string]string{
+				common.InventoryLabel: "test-inventory",
+			},
+		},
+		Spec: v1alpha1.ResourceGroupSpec{
+			Resources: metricsResources,
+		},
+	}
+
+	// Create the ResourceGroup for metrics testing
+	err = c.Create(ctx, metricsResgroupKpt, client.FieldOwner(fake.FieldManager))
+	require.NoError(t, err)
+
+	// Update status to trigger reconciliation
+	metricsResgroupKpt.Status.ObservedGeneration = metricsResgroupKpt.Generation
+	err = c.Status().Update(ctx, metricsResgroupKpt, client.FieldOwner(fake.FieldManager))
+	require.NoError(t, err)
+
+	// Trigger reconciliation
+	channelKpt <- event.GenericEvent{Object: metricsResgroupKpt}
+
+	// Wait for reconciliation to complete
+	metricsRgKey := client.ObjectKeyFromObject(metricsResgroupKpt)
+	expectedMetricsStatus := v1alpha1.ResourceGroupStatus{
+		ObservedGeneration: 1,
+		ResourceStatuses: []v1alpha1.ResourceStatus{
+			{ObjMetadata: namespaceRes, Status: v1alpha1.Current},
+			{
+				ObjMetadata: crdRes,
+				Status:      v1alpha1.Current,
+				Conditions: []v1alpha1.Condition{
+					{
+						Type:   v1alpha1.Ownership,
+						Status: v1alpha1.UnknownConditionStatus,
+						Reason: "Unknown",
+						Message: "This object is not owned by any inventory object. The status for the " +
+							"current object may not reflect the specification for it in current ResourceGroup.",
+					},
+				},
+			},
+			{ObjMetadata: pubsubRes, Status: v1alpha1.Current},
+		},
+		Conditions: []v1alpha1.Condition{
+			newReconcilingCondition(v1alpha1.FalseConditionStatus, FinishReconciling, finishReconcilingMsg),
+			newStalledCondition(v1alpha1.FalseConditionStatus, FinishReconciling, finishReconcilingMsg),
+		},
+	}
+	_ = waitForResourceGroupStatus(t, ctx, c, metricsRgKey, 1, 3, expectedMetricsStatus)
+
+	// Expected metrics for the metrics test ResourceGroup
+	expectedMetrics := map[*view.View][]*view.Row{
+		metrics.ResourceCountView: {
+			// Metrics test ResourceGroup (default/test-rg-metrics) - 3 resources
+			{Data: &view.LastValueData{Value: 3}, Tags: []tag.Tag{
+				{Key: metrics.KeyResourceGroup, Value: "default/test-rg-metrics"},
+			}},
+		},
+		metrics.ReadyResourceCountView: {
+			// Metrics test ResourceGroup (default/test-rg-metrics) - 3 ready resources (all are Current)
+			{Data: &view.LastValueData{Value: 3}, Tags: []tag.Tag{
+				{Key: metrics.KeyResourceGroup, Value: "default/test-rg-metrics"},
+			}},
+		},
+		metrics.NamespaceCountView: {
+			// Metrics test ResourceGroup (default/test-rg-metrics) - 2 namespaces: "default" and "test-namespace"
+			{Data: &view.LastValueData{Value: 2}, Tags: []tag.Tag{
+				{Key: metrics.KeyResourceGroup, Value: "default/test-rg-metrics"},
+			}},
+		},
+		metrics.ClusterScopedResourceCountView: {
+			// Metrics test ResourceGroup (default/test-rg-metrics) - 2 cluster-scoped resources (Namespace and CRD)
+			{Data: &view.LastValueData{Value: 2}, Tags: []tag.Tag{
+				{Key: metrics.KeyResourceGroup, Value: "default/test-rg-metrics"},
+			}},
+		},
+		metrics.CRDCountView: {
+			// Metrics test ResourceGroup (default/test-rg-metrics) - 1 CRD (only the test CRD, PubSub CRD is not tracked)
+			{Data: &view.LastValueData{Value: 1}, Tags: []tag.Tag{
+				{Key: metrics.KeyResourceGroup, Value: "default/test-rg-metrics"},
+			}},
+		},
+		metrics.KCCResourceCountView: {
+			// Metrics test ResourceGroup (default/test-rg-metrics) - 1 KCC resource
+			{Data: &view.LastValueData{Value: 1}, Tags: []tag.Tag{
+				{Key: metrics.KeyResourceGroup, Value: "default/test-rg-metrics"},
+			}},
+		},
+	}
+
+	// Validate metrics
+	for view, rows := range expectedMetrics {
+		if diff := exporter.ValidateMetrics(view, rows); diff != "" {
+			t.Errorf("Unexpected metrics recorded (%s): %v", view.Name, diff)
+		}
+	}
 }
 
 //nolint:revive // testing.T before context.Context
