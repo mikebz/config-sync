@@ -23,6 +23,7 @@ import (
 	"github.com/GoogleContainerTools/config-sync/pkg/resourcegroup/controllers/typeresolver"
 	"github.com/GoogleContainerTools/config-sync/pkg/syncer/syncertest/fake"
 	"github.com/GoogleContainerTools/config-sync/pkg/testing/testcontroller"
+	"github.com/GoogleContainerTools/config-sync/pkg/testing/testmetrics"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	v1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
@@ -45,6 +46,13 @@ const (
 )
 
 func TestRootReconciler(t *testing.T) {
+	// Initialize metrics for this test
+	exporter, err := testmetrics.NewTestExporter()
+	if err != nil {
+		t.Fatalf("Failed to create test exporter: %v", err)
+	}
+	defer exporter.ClearMetrics()
+
 	var reconcilerKpt *Reconciler
 
 	// Configure controller-manager to log to the test logger

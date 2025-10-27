@@ -15,6 +15,7 @@
 package main
 
 import (
+	"context"
 	"flag"
 	"fmt"
 	"os"
@@ -140,20 +141,18 @@ func main() {
 		status.EnablePanicOnMisuse()
 	}
 
-	// Register the OpenCensus views
-	if err := ocmetrics.RegisterReconcilerMetricsViews(); err != nil {
-		klog.Fatalf("Failed to register OpenCensus views: %v", err)
-	}
-
-	// Register the OC Agent exporter
-	oce, err := ocmetrics.RegisterOCAgentExporter(reconcilermanager.Reconciler)
+	// Register the OTLP metrics exporter and metrics instruments
+	ctx := context.Background()
+	oce, err := ocmetrics.RegisterOTelExporter(ctx, reconcilermanager.Reconciler)
 	if err != nil {
-		klog.Fatalf("Failed to register the OC Agent exporter: %v", err)
+		klog.Fatalf("Failed to register the OTLP metrics exporter: %v", err)
 	}
 
 	defer func() {
-		if err := oce.Stop(); err != nil {
-			klog.Fatalf("Unable to stop the OC Agent exporter: %v", err)
+		shutdownCtx, cancel := context.WithTimeout(context.Background(), ocmetrics.ShutdownTimeout)
+		defer cancel()
+		if err := oce.Shutdown(shutdownCtx); err != nil {
+			klog.Fatalf("Unable to stop the OTLP metrics exporter: %v", err)
 		}
 	}()
 

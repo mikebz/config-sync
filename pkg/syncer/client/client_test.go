@@ -26,6 +26,7 @@ import (
 	syncerclient "github.com/GoogleContainerTools/config-sync/pkg/syncer/client"
 	syncertestfake "github.com/GoogleContainerTools/config-sync/pkg/syncer/syncertest/fake"
 	"github.com/GoogleContainerTools/config-sync/pkg/testing/testerrors"
+	"github.com/GoogleContainerTools/config-sync/pkg/testing/testmetrics"
 	rbacv1 "k8s.io/api/rbac/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/api/meta"
@@ -83,6 +84,12 @@ func TestClient_Create(t *testing.T) {
 	}
 
 	for _, tc := range testCases {
+		exporter, err := testmetrics.NewTestExporter()
+		if err != nil {
+			t.Fatalf("Failed to create test exporter: %v", err)
+		}
+		defer exporter.ClearMetrics()
+
 		t.Run(tc.name, func(t *testing.T) {
 			sc := syncerclient.New(tc.client, nil)
 

@@ -75,20 +75,15 @@ func run() error {
 	logger := textlogger.NewLogger(textlogger.NewConfig())
 	ctx := context.Background()
 
-	// Register the OpenCensus views
-	if err := ocmetrics.RegisterReconcilerMetricsViews(); err != nil {
-		return fmt.Errorf("failed to register OpenCensus views: %w", err)
-	}
-
-	// Register the OC Agent exporter
-	oce, err := ocmetrics.RegisterOCAgentExporter()
+	// Register the OTLP metrics exporter and metrics instruments
+	oce, err := ocmetrics.RegisterOTelExporter(ctx, resourcegroup.ManagerContainerName)
 	if err != nil {
-		return fmt.Errorf("failed to register the OC Agent exporter: %w", err)
+		return fmt.Errorf("failed to register the OTLP metrics exporter: %w", err)
 	}
 
 	defer func() {
-		if err := oce.Stop(); err != nil {
-			klog.Error(err, "Unable to stop the OC Agent exporter")
+		if err := oce.Shutdown(ctx); err != nil {
+			klog.Error(err, "Unable to stop the OTLP metrics exporter")
 		}
 	}()
 	mgr, err := ctrl.NewManager(ctrl.GetConfigOrDie(), ctrl.Options{

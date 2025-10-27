@@ -25,6 +25,7 @@ import (
 	"github.com/GoogleContainerTools/config-sync/pkg/importer/filesystem/cmpath"
 	ft "github.com/GoogleContainerTools/config-sync/pkg/importer/filesystem/filesystemtest"
 	"github.com/GoogleContainerTools/config-sync/pkg/testing/testerrors"
+	"github.com/GoogleContainerTools/config-sync/pkg/testing/testmetrics"
 	"github.com/stretchr/testify/assert"
 	"k8s.io/apimachinery/pkg/util/rand"
 	"k8s.io/apimachinery/pkg/util/wait"
@@ -211,6 +212,13 @@ func TestRunHydrate(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
+			// Initialize metrics for this test
+			exporter, err := testmetrics.NewTestExporter()
+			if err != nil {
+				t.Fatalf("Failed to create test exporter: %v", err)
+			}
+			defer exporter.ClearMetrics()
+
 			// create a temporary directory with a commit hash
 			tempDir, err := os.MkdirTemp(os.TempDir(), "run-hydrate-test")
 			if err != nil {

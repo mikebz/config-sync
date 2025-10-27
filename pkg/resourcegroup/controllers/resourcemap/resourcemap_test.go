@@ -18,12 +18,20 @@ import (
 	"testing"
 
 	"github.com/GoogleContainerTools/config-sync/pkg/api/kpt.dev/v1alpha1"
+	"github.com/GoogleContainerTools/config-sync/pkg/testing/testmetrics"
 	"github.com/stretchr/testify/assert"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/types"
 )
 
 func TestResourceMapReconcile(t *testing.T) {
+	// Initialize metrics for this test
+	exporter, err := testmetrics.NewTestExporter()
+	if err != nil {
+		t.Fatalf("Failed to create test exporter: %v", err)
+	}
+	defer exporter.ClearMetrics()
+
 	res1 := resource{
 		Namespace: "ns1",
 		Name:      "res1",
